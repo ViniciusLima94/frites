@@ -21,6 +21,33 @@ from frites.conn.conn_tf import (_tf_decomp, _create_kernel,
 ###############################################################################
 ###############################################################################
 
+def _pec(w, kernel, foi_idx, x_s, x_t, kw_para):
+    """Power envelopes correlation"""
+    # auto spectra (faster that w * w.conj())
+    s_auto = w.real ** 2 + w.imag ** 2
+
+    # smooth the auto spectra
+    s_auto = _smooth_spectra(s_auto, kernel)
+    # demean spectra
+    s_auto \
+        = (s_auto-s_auto.mean(-1)[..., np.newaxis])/s_auto.std(-1)[..., np.newaxis]
+
+    # define the pairwise coherence
+    def pairwise_pec(w_x, w_y):
+        # computes the pec
+        out = s_auto[:, w_x, :, :] * s_auto[:, w_y, :, :]
+        # mean inside frequency sliding window (if needed)
+        if isinstance(foi_idx, np.ndarray):
+            return _foi_average(out, foi_idx)
+        else:
+            return out
+
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(pairwise_coh, **kw_para)
+
+    # compute the single trial coherence
+    return parallel(p_fun(s, t) for s, t in zip(x_s, x_t))
+
 def _coh(w, kernel, foi_idx, x_s, x_t, kw_para):
     """Pairwise coherence."""
     # auto spectra (faster that w * w.conj())
@@ -123,6 +150,7 @@ def conn_spec(
             * 'coh' : Coherence
             * 'plv' : Phase-Locking Value (PLV)
             * 'sxy' : Cross-spectrum
+            * 'pec' : Power correlation 
 
         By default, the coherenc is used.
     freqs : array_like
@@ -192,7 +220,8 @@ def conn_spec(
     conn_f, f_name = {
         'coh': (_coh, 'Coherence'),
         'plv': (_plv, "Phase-Locking Value"),
-        'sxy': (_cs, "Cross-spectrum")
+        'sxy': (_cs, "Cross-spectrum"),
+        'pec': (_pec, "Power correlation")
     }[metric]
 
     # _________________________________ INPUTS ________________________________
