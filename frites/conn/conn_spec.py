@@ -43,7 +43,7 @@ def _pec(w, kernel, foi_idx, x_s, x_t, kw_para):
             return out
 
     # define the function to compute in parallel
-    parallel, p_fun = parallel_func(pairwise_coh, **kw_para)
+    parallel, p_fun = parallel_func(pairwise_pec, **kw_para)
 
     # compute the single trial coherence
     return parallel(p_fun(s, t) for s, t in zip(x_s, x_t))
