@@ -59,7 +59,7 @@ def ent_1d_g(x, biascorrect=True):
     return hx / ln2
 
 
-def mi_1d_gg(x, y, biascorrect=True, demeaned=False):
+def mi_1d_gg(x, y, relative=False, biascorrect=True, demeaned=False):
     """Mutual information (MI) between two Gaussian variables in bits.
 
     I = mi_gg(x,y) returns the MI between two (possibly multidimensional)
@@ -69,6 +69,8 @@ def mi_1d_gg(x, y, biascorrect=True, demeaned=False):
     ----------
     x, y : array_like
         Gaussian arrays of shape (n_epochs,) or (n_dimensions, n_epochs)
+    relative: bool | False
+        If true returns the normalized MI (MI(x,y)/H(x))
     biascorrect : bool | True
         Specifies whether bias correction should be applied to the estimated MI
     demeaned : bool | False
@@ -78,7 +80,8 @@ def mi_1d_gg(x, y, biascorrect=True, demeaned=False):
     Returns
     -------
     i : float
-        Information shared by x and y (in bits)
+        Information shared by x and y in bits or undmensional if
+        relative is True
     """
     x, y = np.atleast_2d(x), np.atleast_2d(y)
     if (x.ndim > 2) or (y.ndim > 2):
@@ -118,12 +121,16 @@ def mi_1d_gg(x, y, biascorrect=True, demeaned=False):
         hy = hy - nvary * dterm - psiterms[:nvary].sum()
         hxy = hxy - nvarxy * dterm - psiterms[:nvarxy].sum()
 
+    i = hx + hy - hxy
+    if relative:
+        i = i / hx
+    else:
+        i = i / ln2
     # MI in bits
-    i = (hx + hy - hxy) / ln2
     return i
 
 
-def gcmi_1d_cc(x, y):
+def gcmi_1d_cc(x, y, relative=False):
     """Gaussian-Copula MI between two continuous variables.
 
     I = gcmi_cc(x,y) returns the MI between two (possibly multidimensional)
@@ -133,11 +140,14 @@ def gcmi_1d_cc(x, y):
     ----------
     x, y : array_like
         Continuous arrays of shape (n_epochs,) or (n_dimensions, n_epochs)
+    relative: bool | False
+        If true returns the normalized MI (MI(x,y)/H(x))
 
     Returns
     -------
     i : float
-        Information shared by x and y (in bits)
+        Information shared by x and y in bits or undmensional if
+        relative is True
     """
     x, y = np.atleast_2d(x), np.atleast_2d(y)
     if x.ndim > 2 or y.ndim > 2:
@@ -150,10 +160,10 @@ def gcmi_1d_cc(x, y):
     # copula normalization
     cx, cy = copnorm_nd(x, axis=1), copnorm_nd(y, axis=1)
     # parametric Gaussian MI
-    return mi_1d_gg(cx, cy, True, True)
+    return mi_1d_gg(cx, cy, relative, True, True)
 
 
-def mi_model_1d_gd(x, y, biascorrect=True, demeaned=False):
+def mi_model_1d_gd(x, y, relative=False, biascorrect=True, demeaned=False):
     """Mutual information between a Gaussian and a discrete variable in bits.
 
     This method is based on ANOVA style model comparison.
@@ -165,6 +175,8 @@ def mi_model_1d_gd(x, y, biascorrect=True, demeaned=False):
     x, y : array_like
         Gaussian arrays of shape (n_epochs,) or (n_dimensions, n_epochs). y
         must be an array of integers
+    relative: bool | False
+        If true returns the normalized MI (MI(x,y)/H(x))
     biascorrect : bool | True
         Specifies whether bias correction should be applied to the estimated MI
     demeaned : bool | False
@@ -174,7 +186,8 @@ def mi_model_1d_gd(x, y, biascorrect=True, demeaned=False):
     Returns
     -------
     i : float
-        Information shared by x and y (in bits)
+        Information shared by x and y in bits or undmensional if
+        relative is True
     """
     x, y = np.atleast_2d(x), np.squeeze(y)
     if x.ndim > 2:
@@ -228,12 +241,17 @@ def mi_model_1d_gd(x, y, biascorrect=True, demeaned=False):
             psiterms = psiterms + sp.special.psi(idx.astype(float) / 2.)
         hcond = hcond - nvarx * dterm - (psiterms / 2.)
 
+    i = hunc - np.sum(w * hcond)
+    if relative:
+        i = i / hunc
+    else:
+        i = i / ln2
+
     # MI in bits
-    i = (hunc - np.sum(w * hcond)) / ln2
     return i
 
 
-def gcmi_model_1d_cd(x, y):
+def gcmi_model_1d_cd(x, y, relative=False):
     """Gaussian-Copula MI between a continuous and a discrete variable.
 
     This method is based on ANOVA style model comparison.
@@ -245,11 +263,14 @@ def gcmi_model_1d_cd(x, y):
     x, y : array_like
         Continuous arrays of shape (n_epochs,) or (n_dimensions, n_epochs). y
         must be an array of integers
+    relative: bool | False
+        If true returns the normalized MI (MI(x,y)/H(x))
 
     Returns
     -------
     i : float
-        Information shared by x and y (in bits)
+        Information shared by x and y in bits or undmensional if
+        relative is True
     """
     x, y = np.atleast_2d(x), np.squeeze(y)
     if x.ndim > 2:
@@ -267,10 +288,10 @@ def gcmi_model_1d_cd(x, y):
     # copula normalization
     cx = copnorm_nd(x, axis=1)
     # parametric Gaussian MI
-    return mi_model_1d_gd(cx, y, True, True)
+    return mi_model_1d_gd(cx, y, relative, True, True)
 
 
-def mi_mixture_1d_gd(x, y):
+def mi_mixture_1d_gd(x, y, relative=False):
     """Mutual information between a Gaussian and a discrete variable in bits.
 
     This method evaluate MI from a Gaussian mixture.
@@ -282,11 +303,14 @@ def mi_mixture_1d_gd(x, y):
     x, y : array_like
         Gaussian arrays of shape (n_epochs,) or (n_dimensions, n_epochs). y
         must be an array of integers
+    relative: bool | False
+        If true returns the normalized MI (MI(x,y)/H(x))
 
     Returns
     -------
     i : float
-        Information shared by x and y (in bits)
+        Information shared by x and y in bits or undmensional if
+        relative is True
     """
     x, y = np.atleast_2d(x), np.squeeze(y)
     if x.ndim > 2:
@@ -364,8 +388,12 @@ def mi_mixture_1d_gd(x, y):
 
     hmix = -hmix / (2 * d)
 
-    # no bias correct
-    i = (hmix - np.sum(w * hcond)) / np.log(2.)
+    i = hmix - np.sum(w * hcond)
+    if relative:
+        i = i / hmix
+    else:
+        i = i / ln2
+
     return i
 
 
@@ -376,7 +404,7 @@ def _norm_innerv(x, chc):
     return w
 
 
-def gcmi_mixture_1d_cd(x, y):
+def gcmi_mixture_1d_cd(x, y, relative=False):
     """Gaussian-Copula MI between a continuous and a discrete variable.
 
     This method evaluate MI from a Gaussian mixture.
@@ -434,7 +462,7 @@ def gcmi_mixture_1d_cd(x, y):
 
     cx = np.concatenate(classdat, axis=1)
     newy = np.concatenate(ydat)
-    return mi_mixture_1d_gd(cx, newy)
+    return mi_mixture_1d_gd(cx, newy, relative)
 
 
 def cmi_1d_ggg(x, y, z, biascorrect=True, demeaned=False):
