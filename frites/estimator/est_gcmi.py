@@ -43,8 +43,9 @@ class GCMIEstimator(BaseMIEstimator):
         (gpu=False) or on GPU (gpu=True) (default : False)
     """
 
-    def __init__(self, mi_type='cc', copnorm=True, biascorrect=True,
-                 demeaned=False, tensor=True, gpu=False, verbose=None):
+    def __init__(self, mi_type='cc', relative=False, copnorm=True,
+                 biascorrect=True, demeaned=False, tensor=True, gpu=False,
+                 verbose=None):
         self.name = 'Gaussian Copula Mutual Information Estimator'
         add_str = (f", copnorm={copnorm}, biascorrect={biascorrect}, "
                    f"demeaned={demeaned}")
@@ -71,10 +72,12 @@ class GCMIEstimator(BaseMIEstimator):
 
         # additional arguments that are going to be passed to the core function
         if tensor:
-            self._kwargs = dict(biascorrect=biascorrect, demeaned=demeaned,
+            self._kwargs = dict(relative=relative, biascorrect=biascorrect,
+                                demeaned=demeaned,
                                 shape_checking=False, traxis=-1, mvaxis=-2)
         else:
-            self._kwargs = dict(biascorrect=biascorrect, demeaned=demeaned)
+            self._kwargs = dict(relative=relative, biascorrect=biascorrect,
+                                demeaned=demeaned)
         # update internal settings
         settings = dict(tensor=tensor, gpu=gpu, mi_type=mi_type,
                         copnorm=copnorm, core_fun=self._core_fun.__name__)
