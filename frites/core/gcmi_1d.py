@@ -59,7 +59,7 @@ def ent_1d_g(x, biascorrect=True):
     return hx / ln2
 
 
-def mi_1d_gg(x, y, relative=True, biascorrect=True, demeaned=False):
+def mi_1d_gg(x, y, relative=False, biascorrect=True, demeaned=False):
     """Mutual information (MI) between two Gaussian variables in bits.
 
     I = mi_gg(x,y) returns the MI between two (possibly multidimensional)
@@ -130,7 +130,7 @@ def mi_1d_gg(x, y, relative=True, biascorrect=True, demeaned=False):
     return i
 
 
-def gcmi_1d_cc(x, y, relative=True):
+def gcmi_1d_cc(x, y, relative=False):
     """Gaussian-Copula MI between two continuous variables.
 
     I = gcmi_cc(x,y) returns the MI between two (possibly multidimensional)
@@ -163,7 +163,7 @@ def gcmi_1d_cc(x, y, relative=True):
     return mi_1d_gg(cx, cy, relative, True, True)
 
 
-def mi_model_1d_gd(x, y, relative=True, biascorrect=True, demeaned=False):
+def mi_model_1d_gd(x, y, relative=False, biascorrect=True, demeaned=False):
     """Mutual information between a Gaussian and a discrete variable in bits.
 
     This method is based on ANOVA style model comparison.
@@ -251,7 +251,7 @@ def mi_model_1d_gd(x, y, relative=True, biascorrect=True, demeaned=False):
     return i
 
 
-def gcmi_model_1d_cd(x, y, relative=True):
+def gcmi_model_1d_cd(x, y, relative=False):
     """Gaussian-Copula MI between a continuous and a discrete variable.
 
     This method is based on ANOVA style model comparison.
@@ -291,7 +291,7 @@ def gcmi_model_1d_cd(x, y, relative=True):
     return mi_model_1d_gd(cx, y, relative, True, True)
 
 
-def mi_mixture_1d_gd(x, y, relative=True):
+def mi_mixture_1d_gd(x, y, relative=False):
     """Mutual information between a Gaussian and a discrete variable in bits.
 
     This method evaluate MI from a Gaussian mixture.
@@ -404,7 +404,7 @@ def _norm_innerv(x, chc):
     return w
 
 
-def gcmi_mixture_1d_cd(x, y, relative=True):
+def gcmi_mixture_1d_cd(x, y, relative=False):
     """Gaussian-Copula MI between a continuous and a discrete variable.
 
     This method evaluate MI from a Gaussian mixture.

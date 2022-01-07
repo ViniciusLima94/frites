@@ -68,7 +68,7 @@ def nd_shape_checking(x, y, mvaxis, traxis):
 ###############################################################################
 
 
-def mi_nd_gg(x, y, relative=True, mvaxis=None, traxis=-1,
+def mi_nd_gg(x, y, relative=False, mvaxis=None, traxis=-1,
              biascorrect=True, demeaned=False,
              shape_checking=True):
     """Multi-dimentional MI between two Gaussian variables in bits.
@@ -154,7 +154,7 @@ def mi_nd_gg(x, y, relative=True, mvaxis=None, traxis=-1,
     return i
 
 
-def mi_model_nd_gd(x, y, relative=True, mvaxis=None,
+def mi_model_nd_gd(x, y, relative=False, mvaxis=None,
                    traxis=-1, biascorrect=True,
                    demeaned=False, shape_checking=True):
     """Multi-dimentional MI between a Gaussian and a discret variables in bits.
@@ -356,7 +356,7 @@ def cmi_nd_ggg(x, y, z, mvaxis=None, traxis=-1, biascorrect=True,
 ###############################################################################
 
 
-def gcmi_nd_cc(x, y, relative=True, mvaxis=None,
+def gcmi_nd_cc(x, y, relative=False, mvaxis=None,
                traxis=-1, shape_checking=True, gcrn=True):
     """GCMI between two continuous variables.
 
@@ -405,7 +405,7 @@ def gcmi_nd_cc(x, y, relative=True, mvaxis=None,
                     demeaned=True, shape_checking=False)
 
 
-def gcmi_model_nd_cd(x, y, relative=True,
+def gcmi_model_nd_cd(x, y, relative=False,
                      mvaxis=None, traxis=-1, shape_checking=True,
                      gcrn=True):
     """GCMI between a continuous and discret variables.
