@@ -48,7 +48,7 @@ class GCMIEstimator(BaseMIEstimator):
                  verbose=None):
         self.name = 'Gaussian Copula Mutual Information Estimator'
         add_str = (f", copnorm={copnorm}, biascorrect={biascorrect}, "
-                   f"demeaned={demeaned}")
+                   f"relative={relative}, demeaned={demeaned}")
         super(GCMIEstimator, self).__init__(
             mi_type=mi_type, verbose=verbose, add_str=add_str)
 
