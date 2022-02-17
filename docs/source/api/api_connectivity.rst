@@ -19,7 +19,7 @@ Connectivity metrics
    conn_covgc
    conn_ccf
    conn_spec
-   conn_transfer_entropy
+   conn_te
 
 Utility functions
 +++++++++++++++++
@@ -34,6 +34,7 @@ Reshaping connectivity outputs
    conn_reshape_directed
    conn_ravel_directed
    conn_net
+   conn_links
    conn_get_pairs
 
 Metrics to apply on FC
