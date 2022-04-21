@@ -425,7 +425,6 @@ class WfMi(WfBase):
         the real effect size.
         """
         if (self._inference == 'rfx') and (rfx_es == 'tvalues'):
-            from frites.config import CONFIG
             from frites.stats import ttest_1samp
 
             logger.info("    Resampling at the second level t-test")
@@ -451,7 +450,7 @@ class WfMi(WfBase):
             pbar = ProgressBar(range(n_boots), mesg='Estimating CI')
 
             # get t-test related variables
-            s_hat = CONFIG['TTEST_MNE_SIGMA']
+            s_hat = self._wf_stats.attrs['ttest_sigma']
 
             tt = []
             for n_p in range(n_boots):

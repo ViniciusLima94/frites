@@ -236,7 +236,7 @@ def conn_spec(
         data, times=times, roi=roi, agg_ch=False, win_sample=None,
         block_size=block_size, sfreq=sfreq, freqs=freqs, foi=foi,
         sm_times=sm_times, sm_freqs=sm_freqs, verbose=verbose,
-        name=f'Sepctral connectivity (metric = {f_name}, mode={mode})',
+        name=f'Spectral connectivity (metric = {f_name}, mode={mode})',
         kw_links=kw_links
     )
 
@@ -340,7 +340,7 @@ if __name__ == '__main__':
 
     foi = np.array([[2, 4], [5, 7], [8, 13], [13, 30], [30, 60]])
     coh = conn_spec(
-        x, freqs, sfreq=sfreq, roi='roi', times='times', sm_times=2.,
+        x, sfreq=sfreq, roi='roi', times='times', sm_times=2.,
         sm_freqs=1, mode='morlet', n_cycles=n_cycles,
         decim=1, foi=None, block_size=4, n_jobs=1, metric='plv', **kw_links
     )

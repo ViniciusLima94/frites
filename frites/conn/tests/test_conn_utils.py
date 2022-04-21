@@ -249,15 +249,24 @@ class TestConnUtils(object):
             roi_st, ['aINS-dlPFC', 'dlPFC-dlPFC', 'dlPFC-vmPFC', 'aINS-dlPFC',
                      'aINS-vmPFC', 'dlPFC-vmPFC'])
 
-        # testing removing within roi connections
-        _, roi_st = conn_links(roi, within_roi=False)
-        assert 'dlPFC-dlPFC' not in roi_st
-        _, roi_st = conn_links(roi, directed=True, net=False, within_roi=False)
-        assert 'dlPFC->dlPFC' not in roi_st
-        _, roi_st = conn_links(roi, directed=True, net=True, within_roi=False)
-        assert 'dlPFC-dlPFC' not in roi_st
+        # testing removing intra / inter roi connections
+        _, roi_st = conn_links(roi, roi_relation='intra')
+        np.testing.assert_array_equal(roi_st, ['dlPFC-dlPFC'])
+        _, roi_st = conn_links(roi, roi_relation='inter')
+        np.testing.assert_array_equal(roi_st, [
+            'aINS-dlPFC', 'dlPFC-vmPFC', 'aINS-dlPFC', 'aINS-vmPFC',
+            'dlPFC-vmPFC'])
+        _, roi_st = conn_links(roi, directed=True, net=False,
+                               roi_relation='intra')
+        np.testing.assert_array_equal(roi_st, ['dlPFC->dlPFC', 'dlPFC->dlPFC'])
+        _, roi_st = conn_links(roi, directed=True, net=False,
+                               roi_relation='inter')
+        np.testing.assert_array_equal(roi_st, [
+            'dlPFC->aINS', 'dlPFC->vmPFC', 'aINS->dlPFC', 'aINS->dlPFC',
+            'aINS->vmPFC', 'dlPFC->aINS', 'dlPFC->vmPFC', 'vmPFC->dlPFC',
+            'vmPFC->aINS', 'vmPFC->dlPFC'])
 
-        # remove links without a minimum number of conections
+        # remove links without a minimum number of connections
         _, roi_st = conn_links(roi, nb_min_links=2)
         np.testing.assert_array_equal(
             roi_st, ['aINS-dlPFC', 'dlPFC-vmPFC', 'aINS-dlPFC', 'dlPFC-vmPFC'])
@@ -284,3 +293,15 @@ class TestConnUtils(object):
         _, roi_st = conn_links(roi, pairs=np.c_[p_1, p_2], directed=True)
         np.testing.assert_array_equal(
             roi_st, ['dlPFC->aINS', 'dlPFC->vmPFC'])
+
+        # test hemispheric selection
+        hemi = ['R', 'R', 'L', 'L']
+        roi_2 = ['r0', 'r1', 'r2', 'r3']
+        _, roi_st = conn_links(roi_2, hemisphere=hemi, hemi_links='both')
+        np.testing.assert_array_equal(
+            roi_st, ['r0-r1', 'r0-r2', 'r0-r3', 'r1-r2', 'r1-r3', 'r2-r3'])
+        _, roi_st = conn_links(roi_2, hemisphere=hemi, hemi_links='intra')
+        np.testing.assert_array_equal(roi_st, ['r0-r1', 'r2-r3'])
+        _, roi_st = conn_links(roi_2, hemisphere=hemi, hemi_links='inter')
+        np.testing.assert_array_equal(
+            roi_st, ['r0-r2', 'r0-r3', 'r1-r2', 'r1-r3'])

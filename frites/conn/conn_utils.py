@@ -142,8 +142,9 @@ def conn_get_pairs(roi, directed=False, nb_min_suj=-np.inf, verbose=None):
     return df_conn, df_suj
 
 
-def conn_links(roi, directed=False, net=False, within_roi=True, sep='auto',
-               nb_min_links=None, pairs=None, sort=True, verbose=None):
+def conn_links(roi, directed=False, net=False, roi_relation='both', sep='auto',
+               nb_min_links=None, pairs=None, sort=True, triu_k=1,
+               hemisphere=None, hemi_links='both', verbose=None):
     """Construct pairwise links for functional connectivity.
 
     This function can be used for defining the pairwise links for computing
@@ -158,6 +159,13 @@ def conn_links(roi, directed=False, net=False, within_roi=True, sep='auto',
         (True) FC
     net : bool | False
         Specify whether it is for net directed FC (True) or not (False)
+    roi_relation : {'both', 'inter', 'intra'}
+        Specify the roi relation between pairs of brain regions. Use either :
+
+            * 'intra' : to select only links within a brain region
+              (e.g. V1-V1)
+            * 'inter' : to select only links across brain region (e.g. V1-V2)
+            * 'both' : to select links both within and across brain regions
     within_roi : bool | True
         Specify whether links within a brain region (e.g. V1-V1) should be
         keept (True) or removed (False).
@@ -175,6 +183,20 @@ def conn_links(roi, directed=False, net=False, within_roi=True, sep='auto',
     sort : bool | True
         For undirected and net directed FC, sort the names of the brain regions
         (e.g. 'V1-M1' -> 'M1-V1')
+    triu_k : int | 1
+        Diagonal offset when estimating the undirected links to use. By
+        default, triu_k=1 means that we skip auto-connections
+    hemisphere : array_like | None
+        List of hemisphere names
+    hemi_links : {'both', 'intra', 'inter'}
+        Specify whether connectivity links should be :
+
+            * 'both': intra-hemispheric and inter-hemispheric (default)
+            * 'intra': intra-hemispheric
+            * 'inter': inter-hemispheric
+
+        In order to work, you should provide the hemisphere name using the
+        input `hemisphere`
 
     Returns
     -------
@@ -206,13 +228,16 @@ def conn_links(roi, directed=False, net=False, within_roi=True, sep='auto',
         if directed and not net:
             x_s, x_t = np.where(~np.eye(n_roi, dtype=bool))
         elif (not directed) or (directed and net):
-            x_s, x_t = np.triu_indices(n_roi, k=1)
+            x_s, x_t = np.triu_indices(n_roi, k=triu_k)
 
-    # drop within roi links
-    if not within_roi:
-        logger.info("    Dropping within-roi links")
+    # manage roi relation
+    if roi_relation in ['inter', 'intra']:
+        logger.info(f"    Keeping only {roi_relation}-roi links")
         roi_s, roi_t = roi[x_s], roi[x_t]
-        keep = [s != t for s, t in zip(roi_s, roi_t)]
+        if roi_relation == 'intra':
+            keep = [s == t for s, t in zip(roi_s, roi_t)]
+        elif roi_relation == 'inter':
+            keep = [s != t for s, t in zip(roi_s, roi_t)]
         x_s, x_t = x_s[keep], x_t[keep]
 
     # change roi order for undirected and net directed
@@ -239,6 +264,19 @@ def conn_links(roi, directed=False, net=False, within_roi=True, sep='auto',
         df = df.groupby('pairs').size()
         keep = [df.loc[r] >= nb_min_links for r in roi_st]
         x_s, x_t = x_s[keep], x_t[keep]
+
+    # hemisphere selection
+    if isinstance(hemisphere, (list, np.ndarray)):
+        assert hemi_links in ['both', 'intra', 'inter']
+        hemisphere = np.asarray(hemisphere)
+        h_s, h_t = hemisphere[x_s], hemisphere[x_t]
+        if hemi_links in ['intra', 'inter']:
+            keep = h_s == h_t if hemi_links == 'intra' else h_s != h_t
+            x_s, x_t = x_s[keep], x_t[keep]
+        else:
+            keep = np.array([True] * len(x_s))
+        logger.info(f"    Hemispheric selection (hemi_links={hemi_links}, "
+                    f"dropped={(~keep).sum()} links)")
 
     # build pairs of brain region names
     roi_st = np.asarray([f"{s}{sep}{t}" for s, t in zip(roi[x_s], roi[x_t])])
