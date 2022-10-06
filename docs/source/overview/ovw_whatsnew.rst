@@ -3,6 +3,20 @@
 What's new
 ==========
 
+v0.4.3
+------
+
+New Features
+++++++++++++
+* :func:`frites.conn.conn_links` now accepts to use brain region names as source or target seeds (:commit:`8d7e1fb6`)
+* New function :func:`frites.stats.confidence_interval` for computing confidence intervals, standard deviation (sd) and standard error on the mean (sem) on numpy arrays and xarray DataArray (:commit:`3a512537`)
+* New plotting module with two functions for plotting connectivity matrices,  :func:`frites.plot.plot_conn_heatmap` and :func:`frites.plot.plot_conn_circle` (:commit:`7a107d100e`, :commit:`a480371a74`, :commit:`33930cc33a1`, :commit:`24029c4cf6b`)
+
+Bug fixes
++++++++++
+* Fix parallel computing of :func:`frites.conn.conn_covgc` (:commit:`f2ff5f67`)
+* Use linearly spaced indices instead of closest time points in :func:`frites.conn.define_windows` (:commit:`b5443ac2`)
+
 v0.4.2
 ------
 

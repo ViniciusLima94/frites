@@ -11,7 +11,8 @@ from frites.workflow.wf_stats import WfStats
 from frites.workflow.wf_base import WfBase
 from frites.estimator import GCMIEstimator, ResamplingEstimator
 from frites.utils import parallel_func, kernel_smoothing
-from frites.stats import dist_to_ci, permute_mi_vector, bootstrap_partitions
+from frites.stats import (dist_to_ci, permute_mi_vector, bootstrap_partitions,
+                          confidence_interval)
 
 
 class WfMi(WfBase):
@@ -572,7 +573,7 @@ class WfMi(WfBase):
 
         return x_ci
 
-    def get_params(self, *params):
+    def get_params(self, *params, cis=95, n_boots=200, random_state=None):
         """Get formatted parameters.
 
         This method can be used to get internal arrays formatted as xarray
@@ -591,7 +592,27 @@ class WfMi(WfBase):
                   (n_perm, n_subjects, n_times, n_roi)
                 * 'perm_' : DataArray of maximum computed permutations of
                   shape (n_perm,)
+                * 'mi_ci' : DataArray of confidence interval computed when
+                  taking the mean of MI across subjects (or sessions). The
+                  output shape is (n_ci, 2, n_times, n_roi) where
+                  n_ci describe the number of confidence levels define with the
+                  input parameter `ci`, and 2 represents the lower and upper
+                  bounds of the confidence interval
+
+        ci : float, list | 95
+            Confidence level to use in percentage. Use either a single float
+            (e.g. 95, 99 etc.) or a list of floats (e.g. [95, 99])
+        n_boots : int | 200
+            Number of resampling to perform
+        random_state : int | None
+            Fix the random state of the machine (use it for reproducibility).
+            If None, a random state is randomly assigned.
+
         """
+        # input checking
+        if isinstance(cis, (int, float)): cis = [cis]  # noqa
+        assert isinstance(cis, (list, tuple, np.ndarray))
+        assert isinstance(n_boots, int)
         # get coordinates
         times, roi, df_rs = self._times, self._roi, self._df_rs
         if self._inference == 'ffx':
@@ -615,6 +636,23 @@ class WfMi(WfBase):
                         dims=('subject', 'times'))
                 da = xr.Dataset(mi).to_array('roi')
                 da = da.transpose('subject', 'times', 'roi')
+            elif param == 'mi_ci':
+                mi_ci = {}
+                for n_r, r in enumerate(roi):
+                    # compute ci
+                    _ci = confidence_interval(
+                        self._mi[n_r], axis=0, cis=cis, n_boots=n_boots,
+                        random_state=random_state)
+
+                    # xarray
+                    mi_ci[r] = xr.DataArray(
+                        _ci, dims=('ci', 'bound', 'times'),
+                        coords=(cis, ['low', 'high'], times))
+
+                da = xr.Dataset(mi_ci).to_array('roi').transpose(
+                    'ci', 'bound', 'times', 'roi'
+                )
+
             elif param == 'perm_ss':
                 mi = dict()
                 for n_r, r in enumerate(roi):

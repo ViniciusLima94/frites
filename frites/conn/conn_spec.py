@@ -133,7 +133,7 @@ def conn_spec(
         foi=None, sm_times=.5, sm_freqs=1, sm_kernel='hanning', mode='morlet',
         n_cycles=7., mt_bandwidth=None, decim=1, kw_cwt={}, kw_mt={},
         block_size=None, n_jobs=-1, verbose=None, dtype=np.float32,
-        **kw_links):
+        mean_trials=False, **kw_links):
     """Wavelet-based single-trial time-resolved spectral connectivity.
 
     Parameters
@@ -217,10 +217,6 @@ def conn_spec(
     """
     set_log_level(verbose)
 
-    if isinstance(sm_times, np.ndarray):
-        raise NotImplementedError("Frequency dependent kernel in development"
-                                  f"only first {sm_times[0]} will be used")
-
     # _________________________________ METHODS _______________________________
     conn_f, f_name = {
         'coh': (_coh, 'Coherence'),
@@ -250,10 +246,17 @@ def conn_spec(
     n_pairs, n_freqs = len(x_s), len(freqs)
 
     # temporal decimation
-    if isinstance(decim, int):
-        times = times[::decim]
+    times = times[::decim]
+    if isinstance(sm_times, (int, float)):
         sm_times = int(np.round(sm_times / decim))
         sm_times = max(sm_times, 1)
+    elif isinstance(sm_times, (np.ndarray, list, tuple)):
+        assert len(sm_times) == len(freqs), (
+            "For frequency-dependent smoothing, sm_times must have the "
+            "same length as freqs")
+        sm_times = np.round(sm_times / decim)
+        sm_times = np.maximum(sm_times, np.ones((len(sm_times),)))
+        sm_times = sm_times.astype(int).tolist()
 
     # Create smoothing kernel
     kernel = _create_kernel(sm_times, sm_freqs, kernel=sm_kernel)
@@ -268,8 +271,18 @@ def conn_spec(
                 f"sm_freqs={sm_freqs})")
 
     # ______________________ CONTAINER FOR CONNECTIVITY _______________________
+    # prepare outputs
+    if mean_trials:
+        conn = np.zeros((n_pairs, len(f_vec), len(times)), dtype=dtype)
+        dims = ('roi', 'freqs', 'times')
+        coords = (roi_p, f_vec, times)
+    else:
+        conn = np.zeros((n_trials, n_pairs, len(f_vec), len(times)),
+                        dtype=dtype)
+        dims = ('trials', 'roi', 'freqs', 'times')
+        coords = (trials, roi_p, f_vec, times)
+
     # compute coherence on blocks of trials
-    conn = np.zeros((n_trials, n_pairs, len(f_vec), len(times)), dtype=dtype)
     for tr in indices:
         # --------------------------- TIME-FREQUENCY --------------------------
         # time-frequency decomposition
@@ -286,12 +299,19 @@ def conn_spec(
         conn_tr = conn_f(w, kernel, foi_idx, x_s, x_t, kw_para)
 
         # merge results
-        conn[tr, ...] = np.stack(conn_tr, axis=1)
+        if mean_trials:
+            conn += np.stack(conn_tr, axis=1).sum(0)
+        else:
+            conn[tr, ...] = np.stack(conn_tr, axis=1)
 
         # Call GC
         del conn_tr, w
 
     # _________________________________ OUTPUTS _______________________________
+    # final mean
+    if mean_trials:
+        conn /= n_trials
+
     # configuration
     cfg = dict(
         sfreq=sfreq, sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel,
@@ -300,8 +320,7 @@ def conn_spec(
     )
 
     # conversion
-    conn = xr.DataArray(conn, dims=('trials', 'roi', 'freqs', 'times'),
-                        name=metric, coords=(trials, roi_p, f_vec, times),
+    conn = xr.DataArray(conn, dims=dims, name=metric, coords=coords,
                         attrs=check_attrs({**attrs, **cfg}))
     return conn
 
@@ -310,7 +329,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     n_trials = 100
-    n_roi = 3
+    n_roi = 15
     n_times = 1000
     sfreq = 128.
     nt = int(np.round(n_trials / 2))
@@ -335,15 +354,18 @@ if __name__ == '__main__':
 
     x = xr.DataArray(x, dims=('trials', 'roi', 'times'),
                      coords=(trials, roi, times))
-    freqs = np.linspace(2, 60, 100)
+    freqs = np.linspace(2, 60, 10)
     n_cycles = freqs / 2.
 
     foi = np.array([[2, 4], [5, 7], [8, 13], [13, 30], [30, 60]])
     coh = conn_spec(
         x, sfreq=sfreq, roi='roi', times='times', sm_times=2.,
-        sm_freqs=1, mode='morlet', n_cycles=n_cycles,
-        decim=1, foi=None, block_size=4, n_jobs=1, metric='plv', **kw_links
+        sm_freqs=1, mode='morlet', n_cycles=n_cycles, freqs=freqs,
+        decim=1, foi=None, n_jobs=1, metric='coh', mean_trials=True,
+        **kw_links
     )
+    print(coh)
+    exit()
 
     coh.groupby('trials').mean('trials').plot.imshow(
         x='times', y='freqs', col='roi', row='trials')
